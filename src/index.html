@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>伤害计算器（新版）</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        fieldset { margin-bottom: 15px; }
+        label { display: inline-block; width: 220px; }
+        input { margin-bottom: 5px; }
+        .magnification-item { margin-bottom: 10px; }
+        hr { margin: 10px 0; }
+        pre { background: #f4f4f4; padding: 10px; }
+    </style>
+</head>
+<body>
+<h1>伤害计算器（新版）</h1>
+<form id="calculatorForm">
+    <!-- 基础参数 -->
+    <fieldset>
+        <legend>Basic 参数</legend>
+        <label>基础攻击力: <input type="number" step="any" name="basicAttack" value="1642"></label><br>
+        <label>基础暴击: <input type="number" step="any" name="basicCritical" value="43.4"></label><br>
+        <label>基础爆伤: <input type="number" step="any" name="basicExplosiveInjury" value="98"></label><br>
+        <label>基础增伤: <input type="number" step="any" name="basicIncreasedDamage" value="15"></label><br>
+        <label>基础减抗: <input type="number" step="any" name="basicReductionResistance" value="0"></label><br>
+        <label>基础易伤: <input type="number" step="any" name="basicVulnerable" value="0"></label><br>
+        <label>基础特殊增伤: <input type="number" step="any" name="basicSpecialDamage" value="0"></label><br>
+    </fieldset>
+
+    <!-- 增益参数 -->
+    <fieldset>
+        <legend>Gain 参数</legend>
+        <label>攻击力增加: <input type="number" step="any" name="attackValue" value="1516"></label><br>
+        <label>攻击力百分比: <input type="number" step="any" name="attackPowerPercentage" value="30"></label><br>
+        <label>局内攻击力百分比: <input type="number" step="any" name="attackInternalPercentage" value="37"></label><br>
+        <label>增暴: <input type="number" step="any" name="gainCritical" value="25"></label><br>
+        <label>增爆伤: <input type="number" step="any" name="gainExplosiveInjury" value="75"></label><br>
+        <label>增增伤: <input type="number" step="any" name="gainIncreasedDamage" value="44"></label><br>
+        <label>增减抗: <input type="number" step="any" name="gainReductionResistance" value="0"></label><br>
+        <label>增易伤: <input type="number" step="any" name="gainVulnerable" value="25"></label><br>
+        <label>增特殊增伤: <input type="number" step="any" name="gainSpecialDamage" value="0"></label><br>
+    </fieldset>
+
+    <!-- 防御参数 -->
+    <fieldset>
+        <legend>Defense 参数</legend>
+        <label>穿透率: <input type="number" step="any" name="penetration" value="0"></label><br>
+        <label>破防百分比: <input type="number" step="any" name="defenseBreak" value="0"></label><br>
+        <label>穿透值: <input type="number" step="any" name="penetrationValue" value="0"></label><br>
+    </fieldset>
+
+    <!-- 条件参数 -->
+    <fieldset>
+        <legend>Condition 参数</legend>
+        <label>有效主词条数: <input type="number" step="any" name="mainArticle" value="44"></label><br>
+        <label>暴击阈值: <input type="number" step="any" name="conditionCritical" value="95"></label><br>
+    </fieldset>
+
+    <!-- 伤害倍率参数（数组） -->
+    <fieldset>
+        <legend>Magnifications 参数（可增删）</legend>
+        <div id="magnifications">
+            <!-- 这里将自动添加每项 -->
+        </div>
+        <button type="button" onclick="addMagnification()">添加一项</button>
+    </fieldset>
+
+    <button type="button" onclick="runCalculation()">一键运行计算</button>
+</form>
+
+<hr>
+<div id="result"><pre id="logOutput"></pre></div>
+
+<script>
+    // 定义常量，对应 Go 中的词条标识
+    const ATTACK_PERCENTAGE = "AttackPercentage";
+    const CRITICAL = "Critical";
+    const EXPLOSIVE_INJURY = "ExplosiveInjury";
+    const INCREASED_DAMAGE = "IncreasedDamage";
+
+    // 工具函数：计算百分比差值
+    function DecimalToPercentage(newNumber, oldNumber) {
+        if (oldNumber === 0) return 0;
+        let decimalPart = (newNumber - oldNumber) / oldNumber;
+        let percentage = decimalPart * 100;
+        return Math.floor(percentage * 1000 + 0.5) / 1000;
+    }
+
+    // 定义各个类（与 Go 代码结构对应）
+    class Basic {
+        constructor(basicAttack, basicCritical, basicExplosiveInjury, basicIncreasedDamage, basicReductionResistance, basicVulnerable, basicSpecialDamage) {
+            this.basicAttack = basicAttack;
+            this.basicCritical = basicCritical;
+            this.basicExplosiveInjury = basicExplosiveInjury;
+            this.basicIncreasedDamage = basicIncreasedDamage;
+            this.basicReductionResistance = basicReductionResistance;
+            this.basicVulnerable = basicVulnerable;
+            this.basicSpecialDamage = basicSpecialDamage;
+        }
+    }
+
+    class Gain {
+        constructor(attackValue, attackPowerPercentage, attackInternalPercentage, critical, explosiveInjury, increasedDamage, reductionResistance, vulnerable, specialDamage) {
+            this.attackValue = attackValue;
+            this.attackPowerPercentage = attackPowerPercentage;
+            this.attackInternalPercentage = attackInternalPercentage;
+            this.critical = critical;
+            this.explosiveInjury = explosiveInjury;
+            this.increasedDamage = increasedDamage;
+            this.reductionResistance = reductionResistance;
+            this.vulnerable = vulnerable;
+            this.specialDamage = specialDamage;
+        }
+    }
+
+    class Defense {
+        constructor(penetration, defenseBreak, penetrationValue) {
+            this.penetration = penetration;
+            this.defenseBreak = defenseBreak;
+            this.penetrationValue = penetrationValue;
+        }
+    }
+
+    class Condition {
+        constructor(mainArticle, critical) {
+            this.mainArticle = mainArticle;
+            this.critical = critical;
+            this.criticalStatus = 0;
+            this.criticalCount = 0;
+        }
+    }
+
+    class Output {
+        constructor() {
+            this.basicDamageArea = 0;
+            this.increasedDamageArea = 0;
+            this.explosiveInjuryArea = 0;
+            this.defenseArea = 0;
+            this.reductionResistanceArea = 0;
+            this.vulnerableArea = 0;
+            this.specialDamageArea = 0;
+        }
+    }
+
+    class CurrentPanel {
+        constructor(attack = 0, critical = 0, explosiveInjury = 0, increasedDamage = 0, reductionResistance = 0, vulnerable = 0, specialDamage = 0) {
+            this.attack = attack;
+            this.critical = critical;
+            this.explosiveInjury = explosiveInjury;
+            this.increasedDamage = increasedDamage;
+            this.reductionResistance = reductionResistance;
+            this.vulnerable = vulnerable;
+            this.specialDamage = specialDamage;
+        }
+    }
+
+    class Magnification {
+        constructor(magnificationValue, triggerTimes, name, increasedDamage = 0, reductionResistance = 0, defenseBreak = 0, penetration = 0, specialDamage = 0) {
+            this.magnificationValue = magnificationValue;
+            this.triggerTimes = triggerTimes;
+            this.name = name;
+            this.increasedDamage = increasedDamage;
+            this.reductionResistance = reductionResistance;
+            this.defenseBreak = defenseBreak;
+            this.penetration = penetration;
+            this.specialDamage = specialDamage;
+        }
+    }
+
+    class Initialization {
+        constructor(basic, gain, defense, condition, magnifications) {
+            this.basic = basic;
+            this.gain = gain;
+            this.defense = defense;
+            this.condition = condition;
+            this.magnifications = magnifications;
+            this.output = new Output();
+            // 初始当前面板（部分数值由 Basic 与 Gain 累加）
+            this.currentPanel = new CurrentPanel();
+            this.currentPanel.reductionResistance = this.basic.basicReductionResistance + this.gain.reductionResistance;
+            this.currentPanel.vulnerable = this.basic.basicVulnerable + this.gain.vulnerable;
+            this.currentPanel.specialDamage = this.basic.basicSpecialDamage + this.gain.specialDamage;
+            // 初始调用，未分配词条
+            this.handleBasicAttack("", 0);
+            this.handleBasicCritical("", 0);
+            this.handleBasicExplosiveInjury("", 0);
+            this.handleBasicIncreasedDamage("", 0);
+        }
+
+        // 根据指定词条类型和数量更新面板
+        characterPanel(key, count) {
+            this.currentPanel = new CurrentPanel();
+            this.currentPanel.reductionResistance = this.basic.basicReductionResistance + this.gain.reductionResistance;
+            this.currentPanel.vulnerable = this.basic.basicVulnerable + this.gain.vulnerable;
+            this.currentPanel.specialDamage = this.basic.basicSpecialDamage + this.gain.specialDamage;
+            this.handleBasicAttack(key, count);
+            this.handleBasicExplosiveInjury(key, count);
+            this.handleBasicCritical(key, count);
+            this.handleBasicIncreasedDamage(key, count);
+        }
+
+        handleBasicAttack(key, count) {
+            let attackPowerPercentage = this.gain.attackPowerPercentage;
+            if (key === ATTACK_PERCENTAGE) {
+                attackPowerPercentage += 3 * count;
+            }
+            this.currentPanel.attack = (this.basic.basicAttack * (1 + attackPowerPercentage / 100) + this.gain.attackValue) *
+                (1 + this.gain.attackInternalPercentage / 100);
+        }
+
+        handleBasicCritical(key, count) {
+            if (key === CRITICAL) {
+                let crit = this.basic.basicCritical + this.gain.critical + 2.4 * count;
+                if (crit > this.condition.critical) {
+                    this.condition.criticalStatus++;
+                    this.currentPanel.critical = this.basic.basicCritical + this.gain.critical + 2.4 * (count - this.condition.criticalStatus);
+                    this.currentPanel.explosiveInjury = this.currentPanel.explosiveInjury + this.condition.criticalStatus * 4.8;
+                } else {
+                    this.condition.criticalCount = count;
+                    this.currentPanel.critical = crit;
+                }
+            } else {
+                this.currentPanel.critical = this.basic.basicCritical + this.gain.critical;
+            }
+        }
+
+        handleBasicExplosiveInjury(key, count) {
+            let explosiveInjury = this.gain.explosiveInjury;
+            if (key === EXPLOSIVE_INJURY) {
+                explosiveInjury += 4.8 * count;
+            }
+            this.currentPanel.explosiveInjury = this.basic.basicExplosiveInjury + explosiveInjury;
+        }
+
+        handleBasicIncreasedDamage(key, count) {
+            let increasedDamage = this.gain.increasedDamage;
+            if (key === INCREASED_DAMAGE) {
+                increasedDamage += 3 * count;
+            }
+            this.currentPanel.increasedDamage = this.basic.basicIncreasedDamage + increasedDamage;
+        }
+
+        // 各乘区计算方法
+        basicDamageArea(mag) {
+            this.output.basicDamageArea = this.currentPanel.attack * mag.magnificationValue / 100 * mag.triggerTimes;
+        }
+
+        increasedDamageArea(mag) {
+            this.output.increasedDamageArea = 1 + ((mag.increasedDamage || 0) + this.currentPanel.increasedDamage) / 100;
+        }
+
+        explosiveInjuryArea() {
+            this.output.explosiveInjuryArea = 1 + (this.currentPanel.critical * this.currentPanel.explosiveInjury) / 10000;
+        }
+
+        defenseArea(mag) {
+            const characterBase = 793.783;
+            const totalDefense = 873.1613;
+            let penetration = (this.defense.penetration - (mag.penetration || 0)) / 100;
+            let defenseBreak = (this.defense.defenseBreak - (mag.defenseBreak || 0)) / 100;
+            this.output.defenseArea = characterBase / (totalDefense * (1 - penetration) * (1 - defenseBreak) - this.defense.penetrationValue + characterBase);
+        }
+
+        // 修改后的减抗区方法
+        reductionResistanceArea(mag) {
+            this.output.reductionResistanceArea = 1 + ((mag.reductionResistance || 0) + this.currentPanel.reductionResistance) / 100;
+        }
+
+        vulnerableArea() {
+            this.output.vulnerableArea = 1 + (this.currentPanel.vulnerable) / 100;
+        }
+
+        specialDamageArea() {
+            this.output.specialDamageArea = 1 + (this.currentPanel.specialDamage) / 100;
+        }
+
+        initializationArea(mag) {
+            this.basicDamageArea(mag);
+            this.increasedDamageArea(mag);
+            this.explosiveInjuryArea();
+            this.defenseArea(mag);
+            this.reductionResistanceArea(mag);
+            this.vulnerableArea();
+            this.specialDamageArea();
+        }
+
+        // 计算总伤害（遍历所有伤害倍率）
+        calculatingTotalDamage() {
+            let totalDamage = 0;
+            for (let mag of this.magnifications) {
+                this.initializationArea(mag);
+                let damage = this.output.basicDamageArea *
+                    this.output.increasedDamageArea *
+                    this.output.explosiveInjuryArea *
+                    this.output.defenseArea *
+                    this.output.reductionResistanceArea *
+                    this.output.vulnerableArea *
+                    this.output.specialDamageArea *
+                    (1 + (mag.specialDamage || 0) / 100);
+                totalDamage += damage;
+            }
+            return totalDamage;
+        }
+
+        // 根据主词条分配逻辑（严格参照 Golang GetMaxFloat），并增加日志输出当前面板属性和分隔线
+        // 根据主词条分配逻辑（严格参照 Golang 代码 GetMaxFloat）
+        getMaxFloat(mainArticleDamageMap) {
+            let log = "";
+            let entriesMap = {};
+            entriesMap[ATTACK_PERCENTAGE] = 0;
+            entriesMap[CRITICAL] = 0;
+            entriesMap[EXPLOSIVE_INJURY] = 0;
+            entriesMap[INCREASED_DAMAGE] = 0;
+            entriesMap[CRITICAL + "--"] = 0;
+            let criticalStatus = false;
+            // 循环次数改为 this.condition.mainArticle
+            for (let a = 0; a < this.condition.mainArticle; a++) {
+                let optimal = CRITICAL;
+                let optimalKey = CRITICAL + "--";
+                // 与 攻击力百分比 比较
+                if ( mainArticleDamageMap[optimal][ entriesMap[optimalKey] ].PercentageDifference <
+                    mainArticleDamageMap[ATTACK_PERCENTAGE][ entriesMap[ATTACK_PERCENTAGE] ].PercentageDifference ) {
+                    optimal = ATTACK_PERCENTAGE;
+                    optimalKey = ATTACK_PERCENTAGE;
+                }
+                // 与 爆伤 比较
+                if ( mainArticleDamageMap[optimal][ entriesMap[optimalKey] ].PercentageDifference <
+                    mainArticleDamageMap[EXPLOSIVE_INJURY][ entriesMap[EXPLOSIVE_INJURY] ].PercentageDifference ) {
+                    optimal = EXPLOSIVE_INJURY;
+                    optimalKey = EXPLOSIVE_INJURY;
+                }
+                // 与 增伤 比较
+                if ( mainArticleDamageMap[optimal][ entriesMap[optimalKey] ].PercentageDifference <
+                    mainArticleDamageMap[INCREASED_DAMAGE][ entriesMap[INCREASED_DAMAGE] ].PercentageDifference ) {
+                    optimal = INCREASED_DAMAGE;
+                    optimalKey = INCREASED_DAMAGE;
+                }
+                let explosiveInjuryStatus = false;
+                if (optimal === CRITICAL) {
+                    entriesMap[CRITICAL + "--"]++;
+                    if (criticalStatus) {
+                        explosiveInjuryStatus = true;
+                        optimal = EXPLOSIVE_INJURY;
+                        optimalKey = EXPLOSIVE_INJURY;
+                    } else {
+                        if (this.condition.criticalCount === entriesMap[CRITICAL]) {
+                            explosiveInjuryStatus = true;
+                            criticalStatus = true;
+                            optimal = EXPLOSIVE_INJURY;
+                            optimalKey = EXPLOSIVE_INJURY;
+                        }
+                    }
+                }
+                // 记录本次递增词条
+                entriesMap[optimal] = (entriesMap[optimal] || 0) + 1;
+                if (explosiveInjuryStatus) {
+                    log += `<br>-----------------------------------------------------------------------------------<br>词条分配：攻击力：${entriesMap[ATTACK_PERCENTAGE]}个，暴击：${entriesMap[CRITICAL]}个，爆伤：${entriesMap[EXPLOSIVE_INJURY]}个，增伤：${entriesMap[INCREASED_DAMAGE]}个 ` +
+                        `差距：${mainArticleDamageMap[CRITICAL][ entriesMap[CRITICAL + "--"] ].PercentageDifference.toFixed(6)} 总伤：${mainArticleDamageMap[CRITICAL][ entriesMap[CRITICAL + "--"] ].Damage.toFixed(6)}<br>`;
+                } else {
+                    log += `<br>----------------------------------------------------------------------------------<br>词条分配：攻击力：${entriesMap[ATTACK_PERCENTAGE]}个，暴击：${entriesMap[CRITICAL]}个，爆伤：${entriesMap[EXPLOSIVE_INJURY]}个，增伤：${entriesMap[INCREASED_DAMAGE]}个 ` +
+                        `差距：${mainArticleDamageMap[optimal][ entriesMap[optimal] ].PercentageDifference.toFixed(6)} 总伤：${mainArticleDamageMap[optimal][ entriesMap[optimal] ].Damage.toFixed(6)}<br>`;
+                }
+            }
+            // 更新最终面板
+            this.currentPanel.reductionResistance = this.basic.basicReductionResistance + this.gain.reductionResistance;
+            this.currentPanel.vulnerable = this.basic.basicVulnerable + this.gain.vulnerable;
+            this.currentPanel.specialDamage = this.basic.basicSpecialDamage + this.gain.specialDamage;
+            this.handleBasicAttack(ATTACK_PERCENTAGE, entriesMap[ATTACK_PERCENTAGE] || 0);
+            this.handleBasicCritical(CRITICAL, entriesMap[CRITICAL] || 0);
+            this.handleBasicExplosiveInjury(EXPLOSIVE_INJURY, entriesMap[EXPLOSIVE_INJURY] || 0);
+            this.handleBasicIncreasedDamage(INCREASED_DAMAGE, entriesMap[INCREASED_DAMAGE] || 0);
+            for (let mag of this.magnifications) {
+                this.increasedDamageArea(mag);
+                this.reductionResistanceArea(mag);
+            }
+            this.vulnerableArea();
+            this.specialDamageArea();
+            log += `<br>最终面板：<br>`;
+            log += `  攻击力: ${this.currentPanel.attack.toFixed(2)}, 暴击: ${this.currentPanel.critical.toFixed(2)}%, `;
+            log += `爆伤: ${this.currentPanel.explosiveInjury.toFixed(2)}%, 增伤: ${((this.output.increasedDamageArea - 1) * 100).toFixed(2)}%<br>`;
+            log += `  抗性区: ${(((this.output.reductionResistanceArea - 1) * 100)).toFixed(2)}%, `;
+            log += `易伤区: ${(((this.output.vulnerableArea - 1) * 100)).toFixed(2)}%, `;
+            log += `特殊乘区: ${(((this.output.specialDamageArea - 1) * 100)).toFixed(2)}%<br>`;
+            return log;
+        }
+
+
+    }
+
+    // 工具函数：添加一条“Magnification”输入项
+    function addMagnification(defaults) {
+        defaults = defaults || {
+            magnificationValue: 943.5,
+            triggerTimes: 2,
+            name: "普攻",
+            increasedDamage: 0,
+            reductionResistance: 0,
+            defenseBreak: 0,
+            penetration: 0,
+            specialDamage: 0
+        };
+        const div = document.createElement("div");
+        div.className = "magnification-item";
+        div.innerHTML = `
+        <fieldset style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+          <legend>Magnification</legend>
+          <label>名称: <input type="text" name="magName" value="${defaults.name}"></label><br>
+          <label>倍率值: <input type="number" step="any" name="magValue" value="${defaults.magnificationValue}"></label><br>
+          <label>触发次数: <input type="number" step="any" name="magTrigger" value="${defaults.triggerTimes}"></label><br>
+          <label>增伤: <input type="number" step="any" name="magIncreasedDamage" value="${defaults.increasedDamage}"></label><br>
+          <label>减抗: <input type="number" step="any" name="magReductionResistance" value="${defaults.reductionResistance}"></label><br>
+          <label>破防: <input type="number" step="any" name="magDefenseBreak" value="${defaults.defenseBreak}"></label><br>
+          <label>穿透: <input type="number" step="any" name="magPenetration" value="${defaults.penetration}"></label><br>
+          <label>特殊增伤: <input type="number" step="any" name="magSpecialDamage" value="${defaults.specialDamage}"></label><br>
+          <button type="button" onclick="removeMagnification(this)">删除</button>
+        </fieldset>
+      `;
+        document.getElementById("magnifications").appendChild(div);
+    }
+
+    function removeMagnification(button) {
+        const item = button.parentElement.parentElement;
+        item.parentElement.removeChild(item);
+    }
+
+    // 页面加载时初始化默认的 Magnifications
+    window.onload = function() {
+        addMagnification({magnificationValue: 943.5, triggerTimes: 2, name: "普攻", increasedDamage: 0, reductionResistance: 0, defenseBreak: 0, penetration: 0, specialDamage: 0});
+        addMagnification({magnificationValue: 1658.7, triggerTimes: 4.5, name: "连携技", increasedDamage: 30, reductionResistance: 25, defenseBreak: 0, penetration: 0, specialDamage: 25});
+        addMagnification({magnificationValue: 1202.5, triggerTimes: 2, name: "强化特殊技", increasedDamage: 0, reductionResistance: 0, defenseBreak: 0, penetration: 0, specialDamage: 0});
+        addMagnification({magnificationValue: 3977.3, triggerTimes: 1, name: "终结技", increasedDamage: 30, reductionResistance: 25, defenseBreak: 0, penetration: 0, specialDamage: 25});
+    };
+
+    // 主函数：根据 Go main() 流程执行计算和词条分配
+    function runCalculation() {
+        let logMessages = "";
+        const form = document.getElementById("calculatorForm");
+        // 读取 Basic 参数
+        const basic = new Basic(
+            parseFloat(form.basicAttack.value) || 0,
+            parseFloat(form.basicCritical.value) || 0,
+            parseFloat(form.basicExplosiveInjury.value) || 0,
+            parseFloat(form.basicIncreasedDamage.value) || 0,
+            parseFloat(form.basicReductionResistance.value) || 0,
+            parseFloat(form.basicVulnerable.value) || 0,
+            parseFloat(form.basicSpecialDamage.value) || 0
+        );
+        // 读取 Gain 参数
+        const gain = new Gain(
+            parseFloat(form.attackValue.value) || 0,
+            parseFloat(form.attackPowerPercentage.value) || 0,
+            parseFloat(form.attackInternalPercentage.value) || 0,
+            parseFloat(form.gainCritical.value) || 0,
+            parseFloat(form.gainExplosiveInjury.value) || 0,
+            parseFloat(form.gainIncreasedDamage.value) || 0,
+            parseFloat(form.gainReductionResistance.value) || 0,
+            parseFloat(form.gainVulnerable.value) || 0,
+            parseFloat(form.gainSpecialDamage.value) || 0
+        );
+        // 读取 Defense 参数
+        const defense = new Defense(
+            parseFloat(form.penetration.value) || 0,
+            parseFloat(form.defenseBreak.value) || 0,
+            parseFloat(form.penetrationValue.value) || 0
+        );
+        // 读取 Condition 参数
+        const condition = new Condition(
+            parseFloat(form.mainArticle.value) || 0,
+            parseFloat(form.conditionCritical.value) || 0
+        );
+        // 读取 Magnifications 数组
+        const magDivs = document.querySelectorAll(".magnification-item");
+        let magnifications = [];
+        magDivs.forEach(div => {
+            const name = div.querySelector("input[name='magName']").value;
+            const magValue = parseFloat(div.querySelector("input[name='magValue']").value) || 0;
+            const triggerTimes = parseFloat(div.querySelector("input[name='magTrigger']").value) || 0;
+            const increasedDamage = parseFloat(div.querySelector("input[name='magIncreasedDamage']").value) || 0;
+            const reductionResistance = parseFloat(div.querySelector("input[name='magReductionResistance']").value) || 0;
+            const defenseBreak = parseFloat(div.querySelector("input[name='magDefenseBreak']").value) || 0;
+            const penetration = parseFloat(div.querySelector("input[name='magPenetration']").value) || 0;
+            const specialDamage = parseFloat(div.querySelector("input[name='magSpecialDamage']").value) || 0;
+            magnifications.push(new Magnification(magValue, triggerTimes, name, increasedDamage, reductionResistance, defenseBreak, penetration, specialDamage));
+        });
+
+        // 构造 Initialization 对象
+        const init = new Initialization(basic, gain, defense, condition, magnifications);
+        // 构造记录每个词条类型计算结果的 Map
+        let mainArticleDamageMap = {};
+        mainArticleDamageMap[ATTACK_PERCENTAGE] = [];
+        mainArticleDamageMap[CRITICAL] = [];
+        mainArticleDamageMap[EXPLOSIVE_INJURY] = [];
+        mainArticleDamageMap[INCREASED_DAMAGE] = [];
+        // 初始化各类型当前词条分配数量
+        let MainArticleMap = {};
+        MainArticleMap[ATTACK_PERCENTAGE] = 0;
+        MainArticleMap[CRITICAL] = 0;
+        MainArticleMap[EXPLOSIVE_INJURY] = 0;
+        MainArticleMap[INCREASED_DAMAGE] = 0;
+
+        // 对每个词条类型分别进行计算
+        for (let key of [ATTACK_PERCENTAGE, CRITICAL, EXPLOSIVE_INJURY, INCREASED_DAMAGE]) {
+            let attributeName = ""; // 存储当前计算的属性名称
+            switch (key) {
+                case ATTACK_PERCENTAGE:
+                    attributeName = "攻击力";
+                    break;
+                case CRITICAL:
+                    attributeName = "暴击率";
+                    break;
+                case EXPLOSIVE_INJURY:
+                    attributeName = "爆伤";
+                    break;
+                case INCREASED_DAMAGE:
+                    attributeName = "增伤";
+                    break;
+            }
+
+            // 输出当前正在计算的属性
+            logMessages += `<br>正在计算属性：${attributeName}<br>`;
+            logMessages += `------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------<br>`; // 分隔线，提升可读性
+            logMessages += `------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------<br>`; // 分隔线，提升可读性
+            // 初始面板
+            init.characterPanel("", 0);
+            let OldDamage = init.calculatingTotalDamage();
+            MainArticleMap[key] = 1;
+            while (MainArticleMap[key] <= condition.mainArticle) {
+                init.characterPanel(key, MainArticleMap[key]);
+                // 在输出伤害前，先输出当前面板属性
+                logMessages += `当前面板属性：第${MainArticleMap[key]}词条分配， 攻击力: ${init.currentPanel.attack.toFixed(2)}, 暴击: ${init.currentPanel.critical.toFixed(2)}%, `;
+                logMessages += `爆伤: ${init.currentPanel.explosiveInjury.toFixed(2)}%, 增伤: ${init.currentPanel.increasedDamage.toFixed(2)}%<br>`;
+                let NewDamage = init.calculatingTotalDamage();
+                let percentageDifference = DecimalToPercentage(NewDamage, OldDamage);
+                mainArticleDamageMap[key].push({
+                    CurrentPanel: Object.assign({}, init.currentPanel),
+                    Output: Object.assign({}, init.output),
+                    Damage: NewDamage,
+                    PercentageDifference: percentageDifference
+                });
+                logMessages += `输出总伤害: ${(NewDamage / 10000).toFixed(6)}万<br>`;
+                logMessages += `伤害差距: ${percentageDifference.toFixed(2)}%<br>`;
+                logMessages += `------------------------------------------------------<br>`; // 分隔线，提升可读性
+                OldDamage = NewDamage;
+                MainArticleMap[key]++;
+            }
+        }
+        // 调用分配逻辑（GetMaxFloat）并获得输出日志
+        logMessages += init.getMaxFloat(mainArticleDamageMap);
+        document.getElementById("logOutput").innerHTML = logMessages;
+    }
+</script>
+</body>
+</html>

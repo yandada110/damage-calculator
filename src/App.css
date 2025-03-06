@@ -1,5 +1,8 @@
 .App {
   text-align: center;
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .App-logo {
@@ -35,4 +38,12 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.ant-card {
+  height: 100%;
+}
+
+.ant-input-number {
+  width: 100%;
 }
