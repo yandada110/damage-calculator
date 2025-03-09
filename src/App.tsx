@@ -31,8 +31,7 @@ const { Title } = Typography;
 function App() {
   const [logMessages, setLogMessages] = useState("");
   const [form] = Form.useForm();
-  const sights = Form.useWatch('sights', form)
-
+  const sights = Form.useWatch("sights", form);
 
   const handleFinish = (values: any) => {
     let logs = "";
@@ -79,7 +78,7 @@ function App() {
       (sight: any) =>
         new Magnification(
           sight.magValue || 0,
-          sight.magTrigger || 0,
+          sight.magTrigger || 0, // 注意：这里使用magTrigger映射到Magnification的triggerTimes参数
           sight.magName || "",
           sight.magIncreasedDamage || 0,
           sight.magReductionResistance || 0,
@@ -181,13 +180,16 @@ function App() {
     setLogMessages(logs);
   };
 
-  const handleRemove = (fn: (index: number | number[]) => void, name: number) => {
-    if(sights?.length <= 1) {
-        message.warning('只剩一个啦！不能再删啦')
-        return 
+  const handleRemove = (
+    fn: (index: number | number[]) => void,
+    name: number
+  ) => {
+    if (sights?.length <= 1) {
+      message.warning("只剩一个啦！不能再删啦");
+      return;
     }
-    fn?.(name)
-  }
+    fn?.(name);
+  };
 
   return (
     <div className="App">
@@ -356,17 +358,17 @@ function App() {
           <Form.List name="sights">
             {(fields, { add, remove }) => (
               <>
-                {fields.map((field) => (
-                  <Card 
-                    key={field.key} 
-                    style={{ marginBottom: 16 }} 
+                {fields.map(({ key, name, ...restField }) => (
+                  <Card
+                    key={key}
+                    style={{ marginBottom: 16 }}
                     size="small"
                     title={
                       <Row justify="space-between" align="middle">
                         <Col>
                           <Form.Item
-                            {...field}
-                            name={[field.name, "magName"]}
+                            {...restField}
+                            name={[name, "magName"]}
                             rules={[{ required: true, message: "请输入名称" }]}
                             style={{ marginBottom: 0 }}
                           >
@@ -374,7 +376,9 @@ function App() {
                           </Form.Item>
                         </Col>
                         <Col>
-                          <MinusCircleOutlined onClick={() => handleRemove(remove,  (field.name))} />
+                          <MinusCircleOutlined
+                            onClick={() => handleRemove(remove, name)}
+                          />
                         </Col>
                       </Row>
                     }
@@ -382,9 +386,9 @@ function App() {
                     <Row gutter={[16, 16]}>
                       <Col span={8}>
                         <Form.Item
-                          {...field}
+                          {...restField}
                           label="倍率值"
-                          name={[field.name, "magValue"]}
+                          name={[name, "magValue"]}
                           style={{ marginBottom: 0 }}
                         >
                           <InputNumber style={{ width: "100%" }} />
@@ -392,9 +396,9 @@ function App() {
                       </Col>
                       <Col span={8}>
                         <Form.Item
-                          {...field}
+                          {...restField}
                           label="触发次数"
-                          name={[field.name, "magTrigger"]}
+                          name={[name, "magTrigger"]}
                           style={{ marginBottom: 0 }}
                         >
                           <InputNumber style={{ width: "100%" }} />
@@ -402,9 +406,9 @@ function App() {
                       </Col>
                       <Col span={8}>
                         <Form.Item
-                          {...field}
+                          {...restField}
                           label="增伤"
-                          name={[field.name, "magIncreasedDamage"]}
+                          name={[name, "magIncreasedDamage"]}
                           style={{ marginBottom: 0 }}
                         >
                           <InputNumber style={{ width: "100%" }} />
@@ -412,9 +416,9 @@ function App() {
                       </Col>
                       <Col span={8}>
                         <Form.Item
-                          {...field}
+                          {...restField}
                           label="减抗"
-                          name={[field.name, "magReductionResistance"]}
+                          name={[name, "magReductionResistance"]}
                           style={{ marginBottom: 0 }}
                         >
                           <InputNumber style={{ width: "100%" }} />
@@ -422,9 +426,9 @@ function App() {
                       </Col>
                       <Col span={8}>
                         <Form.Item
-                          {...field}
+                          {...restField}
                           label="破防"
-                          name={[field.name, "magDefenseBreak"]}
+                          name={[name, "magDefenseBreak"]}
                           style={{ marginBottom: 0 }}
                         >
                           <InputNumber style={{ width: "100%" }} />
@@ -432,9 +436,9 @@ function App() {
                       </Col>
                       <Col span={8}>
                         <Form.Item
-                          {...field}
+                          {...restField}
                           label="穿透"
-                          name={[field.name, "magPenetration"]}
+                          name={[name, "magPenetration"]}
                           style={{ marginBottom: 0 }}
                         >
                           <InputNumber style={{ width: "100%" }} />
@@ -442,9 +446,9 @@ function App() {
                       </Col>
                       <Col span={8}>
                         <Form.Item
-                          {...field}
+                          {...restField}
                           label="特殊增伤"
-                          name={[field.name, "magSpecialDamage"]}
+                          name={[name, "magSpecialDamage"]}
                           style={{ marginBottom: 0 }}
                         >
                           <InputNumber style={{ width: "100%" }} />
@@ -470,13 +474,13 @@ function App() {
 
         <Form.Item style={{ marginTop: 16 }}>
           <Button type="primary" htmlType="submit" size="large" block>
-            计算
+            一键运行
           </Button>
         </Form.Item>
       </Form>
 
       {logMessages && (
-        <Card title="计算结果" bordered={false} style={{ marginTop: 16 }}>
+        <Card title="计算结果"  style={{ marginTop: 16 }}>
           <Typography.Text>
             <div dangerouslySetInnerHTML={{ __html: logMessages }} />
           </Typography.Text>
