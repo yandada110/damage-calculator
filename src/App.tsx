@@ -266,25 +266,25 @@ function App() {
           <Col span={12}>
             <Card title="Basic 参数">
               <Form.Item label="基础攻击力" name="basicAttack">
-                <InputNumber min={1} max={10000} style={{ width: "100%" }} />
+                <InputNumber min={1} max={100000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="基础暴击" name="basicCritical">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="基础爆伤" name="basicExplosiveInjury">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="基础增伤" name="basicIncreasedDamage">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="基础减抗" name="basicReductionResistance">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="基础易伤" name="basicVulnerable">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="基础特殊增伤" name="basicSpecialDamage">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
             </Card>
           </Col>
@@ -295,31 +295,31 @@ function App() {
                 <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="攻击力百分比" name="attackPowerPercentage">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item
                 label="局内攻击力百分比"
                 name="attackInternalPercentage"
               >
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="增暴" name="gainCritical">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="增爆伤" name="gainExplosiveInjury">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="增增伤" name="gainIncreasedDamage">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="增减抗" name="gainReductionResistance">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="增易伤" name="gainVulnerable">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="增特殊增伤" name="gainSpecialDamage">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
             </Card>
           </Col>
@@ -329,13 +329,13 @@ function App() {
           <Col span={12}>
             <Card title="Defense 参数">
               <Form.Item label="穿透率" name="penetration">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="破防百分比" name="defenseBreak">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="穿透值" name="penetrationValue">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
             </Card>
           </Col>
@@ -343,10 +343,10 @@ function App() {
           <Col span={12}>
             <Card title="Condition 参数">
               <Form.Item label="有效主词条数" name="mainArticle">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item label="暴击阈值" name="conditionCritical">
-                <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                <InputNumber min={0} max={10000} style={{ width: "100%" }} />
               </Form.Item>
             </Card>
           </Col>
